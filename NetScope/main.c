@@ -208,6 +208,7 @@ static int prepare_scope(int sockfd, struct waveform_attribute *wavAttr)
     buf[ret] = '\0';
     printf("%s", buf);
 
+
     strncpy(buf, "DATa:ENCdg FAStest;:", sizeof(buf));
     strncpy(buf1, "DATa:SOUrce ", sizeof(buf1));
     for(ich=0; ich<SCOPE_NCH; ich++) {
@@ -225,17 +226,23 @@ static int prepare_scope(int sockfd, struct waveform_attribute *wavAttr)
 
     /* turn on selected channels */
     ret = query_response(sockfd, buf, buf);
+    printf("Turn_On channels: %d\n", ret);
 
     //strncpy(buf, "HORizontal:ACQLENGTH?;:WFMOutpre:XINcr?;:WFMOutpre:PT_Off?\n", sizeof(buf));
     strncpy(buf, "HORizontal:RECORDLENGTH?;:WFMOutpre:XINcr?;:WFMOutpre:PT_Off?\n", sizeof(buf));
     ret = query_response(sockfd, buf, buf);
+    printf("HORizontal: %d\n", ret);
+
     sscanf(buf, "%zd;%lf;%lf", &(wavAttr->nPt), &(wavAttr->dt), &(wavAttr->t0));
     wavAttr->t0 *= wavAttr->dt;
+    //printf("nPt = %zd\n", &(wavAttr->nPt));
+    //printf("dt = %lf\n", &(wavAttr->dt));
 
     strncpy(buf, "HORizontal:FASTframe:STATE?;:HORizontal:FASTframe:COUNt?\n", sizeof(buf));
     //strncpy(buf, "HORizontal:SAMPLERate?;:HORizontal:SCALe?\n", sizeof(buf));
     //strncpy(buf, "HORizontal:DELay:MODe?;:HORizontal:DELay:TIMe?\n", sizeof(buf));
     ret = query_response(sockfd, buf, buf);
+    printf("HORizontal:FASTframe %d\n", ret);
     sscanf(buf, "%d;%zd", &isFastFrame, &(wavAttr->nFrames));
     if(isFastFrame) {
         printf("FastFrame mode, %zd frames per event.\n", wavAttr->nFrames);
@@ -305,18 +312,9 @@ static void *receive_and_save(void *arg)
     char ibuf[BUFSIZ], retChLenBuf[BUFSIZ];
     ssize_t nr, nw;
     char *wavBuf;
-    //char wavBuf[100000];
 
-/*
-    FILE *fp;
-    if((fp=fopen("log.txt", "w"))==NULL) {
-        perror("log.txt");
-        return (void*)NULL;
-    }
-*/
     sockfd = *((int*)arg);
 
-    //strncpy(ibuf, "curve?\n", sizeof(ibuf));
     strncpy(ibuf, "curve?\n", sizeof(ibuf));
     nw = write(sockfd, ibuf, strnlen(ibuf, sizeof(ibuf)));
 
@@ -324,6 +322,7 @@ static void *receive_and_save(void *arg)
     wavBuf = (char*)malloc(wavBufN * sizeof(char));
 
     iCh = 0; iEvent = 0; j = 0;
+    iRetChLen = 0; 			//initialized by Wei
     fStartEvent = 1; fEndEvent = 0; fStartCh = 0; fGetNDig = 0; fGetRetChLen = 0;
     for(;;) {
         FD_ZERO(&rfd);
@@ -359,7 +358,8 @@ static void *receive_and_save(void *arg)
                         fStartEvent = 1;
 
                         if(iEvent < nEvents-1) {
-                            strncpy(retChLenBuf, "curve?\n", sizeof(retChLenBuf));
+
+                            strncpy(retChLenBuf, "CURVE?\n", sizeof(retChLenBuf));
                             write(sockfd, retChLenBuf, strnlen(retChLenBuf, sizeof(retChLenBuf)));
                         } /* request next event before writing the
                            * current event to file may boost data rate
@@ -397,8 +397,8 @@ static void *receive_and_save(void *arg)
                                 fStartCh = 0;
                                 continue;
                             }
-                        }
-                    } else {
+                      }
+                  } else {
                         wavBuf[j] = ibuf[i];
                         j++;
                         if((j % waveformAttr.nPt) == 0 && (j!=0)) {
