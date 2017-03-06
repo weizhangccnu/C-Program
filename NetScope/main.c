@@ -208,7 +208,6 @@ static int prepare_scope(int sockfd, struct waveform_attribute *wavAttr)
     buf[ret] = '\0';
     printf("%s", buf);
 
-
     strncpy(buf, "DATa:ENCdg FAStest;:", sizeof(buf));
     strncpy(buf1, "DATa:SOUrce ", sizeof(buf1));
     for(ich=0; ich<SCOPE_NCH; ich++) {
@@ -228,28 +227,12 @@ static int prepare_scope(int sockfd, struct waveform_attribute *wavAttr)
     ret = query_response(sockfd, buf, buf);
     printf("Turn_On channels: %s\n", buf);
 
-    //strncpy(buf, "HORizontal:ACQLENGTH?;:WFMOutpre:XINcr?;:WFMOutpre:PT_Off?\n", sizeof(buf));
     strncpy(buf, "HORizontal:RECORDLENGTH?;:WFMOutpre:XINcr?;:WFMOutpre:PT_Off?\n", sizeof(buf));
     ret = query_response(sockfd, buf, buf);
     printf("HORizontal: %d\n", ret);
 
     sscanf(buf, "%zd;%lf;%lf", &(wavAttr->nPt), &(wavAttr->dt), &(wavAttr->t0));
     wavAttr->t0 *= wavAttr->dt;
-    //printf("nPt = %zd\n", &(wavAttr->nPt));
-    //printf("dt = %lf\n", &(wavAttr->dt));
-
-    //strncpy(buf, "HORizontal:FASTframe:STATE?;:HORizontal:FASTframe:COUNt?\n", sizeof(buf));
-    //strncpy(buf, "HORizontal:SAMPLERate?;:HORizontal:SCALe?\n", sizeof(buf));
-    //strncpy(buf, "HORizontal:DELay:MODe?;:HORizontal:DELay:TIMe?\n", sizeof(buf));
-    //ret = query_response(sockfd, buf, buf);
-    //printf("HORizontal:FASTframe %d\n", buf);
-    //sscanf(buf, "%d;%zd", &isFastFrame, &(wavAttr->nFrames));
-    //if(isFastFrame) {
-    //    printf("FastFrame mode, %zd frames per event.\n", wavAttr->nFrames);
-    //    wavAttr->nPt *= wavAttr->nFrames;
-    //} else {
-    //    wavAttr->nFrames = 0;
-    //}
 
     for(ich=0; ich<SCOPE_NCH; ich++) {
         snprintf(buf, sizeof(buf), "DATa:SOUrce CH%d;%s\n", ich+1,
@@ -417,23 +400,6 @@ static void *receive_and_save(void *arg)
         }
     }
 end:
-/*
-    while((nr = read(sockfd, ibuf, sizeof(ibuf)-1))>0) {
-        ibuf[nr] = '\0';
-        if(nr < sizeof(ibuf)-1) {
-            printf("\nThread: %p: %d:\n", pthread_self(), ++i);
-        }
-        // printf("%s", ibuf);
-        write(fileno(fp), ibuf, nr);
-        fflush(fp);
-        printf("ret: %zd ", nr);
-        fflush(stdout);
-    }
-    if(nr < 0) {
-        warn("Thread: %p: read", pthread_self());
-        fflush(stderr);
-    }
-*/
     free(wavBuf);
 //    fclose(fp);
     return (void*)NULL;
