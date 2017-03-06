@@ -226,7 +226,7 @@ static int prepare_scope(int sockfd, struct waveform_attribute *wavAttr)
 
     /* turn on selected channels */
     ret = query_response(sockfd, buf, buf);
-    printf("Turn_On channels: %d\n", ret);
+    printf("Turn_On channels: %s\n", buf);
 
     //strncpy(buf, "HORizontal:ACQLENGTH?;:WFMOutpre:XINcr?;:WFMOutpre:PT_Off?\n", sizeof(buf));
     strncpy(buf, "HORizontal:RECORDLENGTH?;:WFMOutpre:XINcr?;:WFMOutpre:PT_Off?\n", sizeof(buf));
@@ -238,24 +238,26 @@ static int prepare_scope(int sockfd, struct waveform_attribute *wavAttr)
     //printf("nPt = %zd\n", &(wavAttr->nPt));
     //printf("dt = %lf\n", &(wavAttr->dt));
 
-    strncpy(buf, "HORizontal:FASTframe:STATE?;:HORizontal:FASTframe:COUNt?\n", sizeof(buf));
+    //strncpy(buf, "HORizontal:FASTframe:STATE?;:HORizontal:FASTframe:COUNt?\n", sizeof(buf));
     //strncpy(buf, "HORizontal:SAMPLERate?;:HORizontal:SCALe?\n", sizeof(buf));
     //strncpy(buf, "HORizontal:DELay:MODe?;:HORizontal:DELay:TIMe?\n", sizeof(buf));
-    ret = query_response(sockfd, buf, buf);
-    printf("HORizontal:FASTframe %d\n", ret);
-    sscanf(buf, "%d;%zd", &isFastFrame, &(wavAttr->nFrames));
-    if(isFastFrame) {
-        printf("FastFrame mode, %zd frames per event.\n", wavAttr->nFrames);
-        wavAttr->nPt *= wavAttr->nFrames;
-    } else {
-        wavAttr->nFrames = 0;
-    }
+    //ret = query_response(sockfd, buf, buf);
+    //printf("HORizontal:FASTframe %d\n", buf);
+    //sscanf(buf, "%d;%zd", &isFastFrame, &(wavAttr->nFrames));
+    //if(isFastFrame) {
+    //    printf("FastFrame mode, %zd frames per event.\n", wavAttr->nFrames);
+    //    wavAttr->nPt *= wavAttr->nFrames;
+    //} else {
+    //    wavAttr->nFrames = 0;
+    //}
 
     for(ich=0; ich<SCOPE_NCH; ich++) {
-        snprintf(buf, sizeof(buf), "data:source ch%d;%s\n", ich+1,
-                 ":data:encdg FAStest;:WFMOutpre:BYT_Nr 1;"
+        snprintf(buf, sizeof(buf), "DATa:SOUrce CH%d;%s\n", ich+1,
+                 ":DATa:ENCdg FAStest;:WFMOutpre:BYT_Nr 1;"
                  ":WFMOutpre:YMUlt?;:WFMOutpre:YOFf?;:WFMOutpre:YZEro?");
+	printf("%s\n",buf);
         ret = query_response(sockfd, buf, buf);
+	printf("ret = %d\n", ret);
         sscanf(buf, "%lf;%lf;%lf", &(wavAttr->ymult[ich]), &(wavAttr->yoff[ich]),
                &(wavAttr->yzero[ich]));
     }
