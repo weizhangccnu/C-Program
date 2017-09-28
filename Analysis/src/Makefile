@@ -13,7 +13,7 @@ LDFLAGS        :=
 ############################# Library add-ons #################################
 TINYSCHEME_FEATURES := -DUSE_DL=1 -DUSE_MATH=1 -DUSE_ASCII_NAMES=0
 INCLUDE += -I/opt/local/include -I/usr/local/include -I./tinyscheme/trunk
-LIBS    += -L/opt/local/lib -L/usr/local/lib -lpthread -lhdf5
+LIBS    += -L/opt/local/lib -L/usr/local/hdf5/lib -lpthread -lhdf5
 GSLLIBS  = $(shell gsl-config --libs)
 CFLAGS  += -DH5_NO_DEPRECATED_SYMBOLS
 LIBS    += $(GSLLIBS)
