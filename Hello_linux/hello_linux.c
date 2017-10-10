@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <hdf5.h>
 
+#define MAIN_DEGUB
 #define SQRT(x) ((x) * (x))
 #define STUDENT(name) student_ ## name
 struct STUDENT(info)                  /* define a struct */
@@ -18,7 +19,7 @@ struct STUDENT(info)                  /* define a struct */
  */
 
 /***************************************************************************/
-int operate_struct(int age)
+int operate_struct(char *name, int age)
 {
     struct STUDENT(info) *STUDENT(information);
     (*STUDENT(information)).name = "WeiZhang";
@@ -49,11 +50,16 @@ int sum_ab(int a, int b)
 /*
  * main function used to receive paramters and convert string parameters into int or other data-type
  */
+#ifdef MAIN_DEGUB
 int main(int argc, char **argv)
 {
     int i = 0;
     int parameter_one = 0;
-
+    //standard error output
+    fprintf(stderr, "waveform_attribute:\n"
+                    "chMake: %d\n"
+                    "  Name: %s\n",
+                    12, "WeiZhang");
     printf("%d\n",argc);
     parameter_one = atoi(argv[1]);          //convert string to int printf("%d\n",parameter_one);           //print integer number 
     for(i=0; i<parameter_one; i++)          //looping print number
@@ -64,3 +70,4 @@ int main(int argc, char **argv)
     printf("Hello Linux!\n");
     return 0;
 }
+#endif
