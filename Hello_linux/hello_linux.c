@@ -1,23 +1,36 @@
 #include <stdio.h>
 #include <hdf5.h>
+#include <gsl/gsl_histogram.h>
 
 #define MAIN_DEGUB
 #define SQRT(x) ((x) * (x))
 #define STUDENT(name) student_ ## name
+/*This is a C program for delivering parameters to main function
+ *Main function received string parameters
+ *
+ *@author: WeiZhang
+ *@date: 2017-09-12 
+ */
 struct STUDENT(info)                  /* define a struct */
 {
     char *name;
     int age;
 };
 
-/*This is a C program for delivering parameters to main function
- *Main function received string parameters
- *
- *@author: WeiZhang
- *@date: 2017-09-12 
- *
+/***************************************************************************/
+/*This function used to create a one dimension histogram
  */
-
+int test_gsl_histogram()
+{
+    gsl_histogram *dat;
+    double range[4] = {1.0, 10.0, 100.0, 1000.0};
+    dat = gsl_histogram_alloc(3);                           //allocates memory 
+    gsl_histogram_set_ranges(dat, range, 4);                //sets the ranges of the existing histogram
+    gsl_histogram_set_ranges_uniform(dat, 0.0, 1000.0);     //sets the  
+    gsl_histogram_free(dat);                                //frees the histogram pointer and all of the memory
+    fprintf(stderr, "%s\n", "test finished!");
+    return 0;
+}
 /***************************************************************************/
 int operate_struct(char *name, int age)
 {
@@ -67,6 +80,9 @@ int main(int argc, char **argv)
         printf("output number:%d\n",i);
         usleep(100000);                     //delay 100ms
     }
+
+    test_gsl_histogram();                   //test gsl_histogram function
+
     printf("Hello Linux!\n");
     return 0;
 }
