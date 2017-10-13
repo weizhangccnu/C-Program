@@ -7,8 +7,6 @@ CFLAGS			:= -Wall
 CFLAGS_32		:= -m32
 SHLIB_CFLAGS	:= -fPIC -shared
 SHLIB_EXT		:= .so
-LIBS			:=
-LDFLAGS			:= 
 ############################ Library add-ons ############################
 INCLUDE += -I/usr/local/hdf5/include -I/usr/include/gsl
 LIBS += -L/usr/lib64 -lgsl -lgslcblas -lm
