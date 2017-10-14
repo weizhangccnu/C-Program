@@ -18,17 +18,28 @@ struct STUDENT(info)                  /* define a struct */
 };
 
 /***************************************************************************/
-/*This function used to create a one dimension histogram
+/*This function is used to create a one dimension histogram
  */
-int test_gsl_histogram()
+int test_gsl_histogram(float a, float b, size_t n)
 {
-    gsl_histogram *dat;
-    double range[4] = {1.0, 10.0, 100.0, 1000.0};
-    dat = gsl_histogram_alloc(3);                           //allocates memory 
-    gsl_histogram_set_ranges(dat, range, 4);                //sets the ranges of the existing histogram
-    gsl_histogram_set_ranges_uniform(dat, 0.0, 1000.0);     //sets the  
-    gsl_histogram_free(dat);                                //frees the histogram pointer and all of the memory
-    fprintf(stderr, "%s\n", "test finished!");
+    int i;
+    double dat[20] = {1, 15, 25, 23, 45, 48, 55, 56, 62, 65, 68, 70, 75, 80, 85, 90, 92, 98, 99};
+    //fp = fopen("output_file.dat", 'w');
+    //if (fp == NULL)
+    //{
+    //    printf("open file error!!\n");
+    //    exit(-1);
+    //}
+    //fputc('a', fp);
+    //fclose(fp);
+    gsl_histogram *h = gsl_histogram_alloc(n);          //allocates memory for histogram struct
+    gsl_histogram_set_ranges_uniform(h, a, b);          //sets the ranges of the existing histogram
+    for(i = 0; i < 20; i++) 
+    {
+        gsl_histogram_increment(h, dat[i]);             //adds one to the bin whose range
+    }
+    gsl_histogram_fprintf(stdout, h, "%g", "%g");           //writes the ranges and bins of the histogram
+    gsl_histogram_free(h);                              //frees the histogram pointer and all of the memory
     return 0;
 }
 /***************************************************************************/
@@ -40,6 +51,7 @@ int operate_struct(char *name, int age)
     printf("name: %s\n"
            "age : %d\n",
            STUDENT(information)->name, STUDENT(information)->age);
+    return 1;
 }
 /***************************************************************************/
 int sum_ab(int a, int b)
@@ -66,23 +78,42 @@ int sum_ab(int a, int b)
 #ifdef MAIN_DEGUB
 int main(int argc, char **argv)
 {
+    //FILE *fp;
+    double a, b;
+    size_t n;
     int i = 0;
     int parameter_one = 0;
+    //if((fp = fopen("output_file.dat", 'w')) == NULL)
+    //{
+    //    printf("open file error!!\n");
+    //    exit(-1);
+    //}
+    //fputc('a', fp);
+    //fclose(fp);
+    if(argc != 5)
+    {
+        printf("Usage: gsl_histogram xmin xmax n\n"
+               "Computes a histogram of the data "
+               "on stdin using n bins from xmin to xmax\n");
+        exit(0);
+    }
+    a = atof(argv[2]);
+    b = atof(argv[3]);
+    n = atoi(argv[4]);
     //standard error output
     fprintf(stderr, "waveform_attribute:\n"
                     "chMake: %d\n"
-                    "  Name: %s\n",
+                    "Name  : %s\n",
                     12, "WeiZhang");
     printf("%d\n",argc);
-    parameter_one = atoi(argv[1]);          //convert string to int printf("%d\n",parameter_one);           //print integer number 
+    parameter_one = atoi(argv[1]);          //convert string to int printf("%d\n",parameter_one);
+    //print integer number 
     for(i=0; i<parameter_one; i++)          //looping print number
     {
         printf("output number:%d\n",i);
         usleep(100000);                     //delay 100ms
     }
-
-    test_gsl_histogram();                   //test gsl_histogram function
-
+    test_gsl_histogram(a, b, n);        //test gsl_histogram function
     printf("Hello Linux!\n");
     return 0;
 }
