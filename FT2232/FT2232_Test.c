@@ -4,12 +4,12 @@
 /*
  * @author: WeiZhang
  * @date: 2018-01-24
- * This program used to control FT2232 chip working under Async mode 
+ * This program used to control FT2232 chip working on sync mode 
  * under Linux operating system
  */
 /******************************************************************/
 // Get driver version
-void Get_driver_version(FT_HANDLE ftHandle)
+void Get_Driver_Version(FT_HANDLE ftHandle)
 {
     FT_STATUS ftStatus;
     DWORD dwDriverVer;
@@ -25,7 +25,7 @@ void Get_driver_version(FT_HANDLE ftHandle)
 }
 /******************************************************************/
 // Get library version
-void Get_library_version()
+void Get_Library_Version()
 {
     FT_STATUS ftStatus;
     DWORD dwLibraryVer;
@@ -38,6 +38,53 @@ void Get_library_version()
     {
         printf("error reading library version\n");
     }
+}
+/******************************************************************/
+// Purge Rx and Tx Buffer
+void Purge_Buffer(FT_HANDLE ftHandle)
+{
+    FT_STATUS ftStatus;
+    ftStatus = FT_Purge(ftHandle, FT_PURGE_RX | FT_PURGE_TX);    //Purge both Rx and Tx buufers
+    if(ftStatus == FT_OK)
+    {
+        printf("FT_Purge succeed!\n");
+    }
+    else
+    {
+        printf("FT_Purge failed!\n");
+    }
+}
+/******************************************************************/
+// Reset FTDI device
+void Reset_Device(FT_HANDLE ftHandle)
+{
+    FT_STATUS ftStatus;
+    ftStatus = FT_ResetDevice(ftHandle);
+    if(ftStatus == FT_OK)
+    {
+        printf("FT_ResetDevice succeed!\n");
+    }
+    else
+    {
+        printf("FT_ResetDevice failed!\n");
+    }
+}
+/******************************************************************/
+// Set device to sync fifo mode
+FT_STATUS Set_Device_Mode(FT_HANDLE ftHandle, UCHAR Mode)
+{
+    FT_STATUS ftStatus;
+    UCHAR Mask = 0xff;
+    ftStatus = FT_SetBitMode(ftHandle, Mask, Mode);
+    if(ftStatus == FT_OK)
+    {
+        printf("Config mode succeed!\n");
+    }
+    else
+    {
+        printf("Config mode failed!\n");
+    }
+    return ftStatus;
 }
 /******************************************************************/
 //main function
@@ -67,8 +114,7 @@ int main()
     if(numDevs > 0)
     {
         // get information for device 0
-        ftStatus = FT_GetDeviceInfoDetail(0, &Flags, &Type, &ID, \
-        &LocId, SerialNumber, Description, &ftHandleTemp);
+        ftStatus = FT_GetDeviceInfoDetail(0, &Flags, &Type, &ID, &LocId, SerialNumber, Description, &ftHandleTemp);
         if(ftStatus == FT_OK)
         {
             printf("Dev 0:\n");
@@ -82,21 +128,40 @@ int main()
         }
     }
     //Opne ftdi device 
-    ftStatus = FT_OpenEx(SerialNumber, FT_OPEN_BY_SERIAL_NUMBER , &ftHandle);   //Open ftdi device
+    ftStatus = FT_OpenEx(SerialNumber, FT_OPEN_BY_SERIAL_NUMBER , &ftHandle);     
     if(ftStatus == FT_OK)
     {
         printf("FT_Open succeed!\n");
-        Get_driver_version(ftHandle);
-        Get_library_version();
+        Get_Driver_Version(ftHandle);                       //Get driver version
+        Get_Library_Version();                              //Get library version
+        //Purge_Buffer(ftHandle);                           //Purge Rx and Tx Buffer
+        //Reset_Device(ftHandle);                           //Reset device
+        Set_Device_Mode(ftHandle, 0x00);                    //Reset mode
+        usleep(1000);
+        if(Set_Device_Mode(ftHandle, 0x40) == FT_OK)        //Set device to sync 245 fifo mode
+        {
+            ftStatus = FT_SetLatencyTimer(ftHandle, 16);    //Set latency time
+            if(ftStatus == FT_OK)
+            { 
+               printf("right!\n");
+            }
+            ftStatus = FT_SetUSBParameters(ftHandle, 0x10000, 0x10000);     //set USB parameter
+            if(ftStatus == FT_OK)
+            { 
+               printf("right!\n");
+            }
+            ftStatus = FT_SetFlowControl(ftHandle, FT_FLOW_RTS_CTS, 0, 0);  //set flow control 
+            if(ftStatus == FT_OK)
+            { 
+               printf("right!\n");
+            }
+        }
     }
     else
     {
         printf("FT_Open failed!\n");
     }
-
-    //close handle
-    FT_Close(ftHandle);
-
+    FT_Close(ftHandle);                             //close handle
     //Test code 
     for(i=0;i<3;i++)
     {
