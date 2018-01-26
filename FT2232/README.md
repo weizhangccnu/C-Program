@@ -19,5 +19,5 @@ sudo ln -sf /usr/local/lib/libftd2xx.so.1.4.6 /usr/local/lib/libftd2xx.so
 ### 4. Software application development ###
   - The exectuable file (FT2232_Test) should run with root privilage on Linux operating system
 ```
-sudo FT2232_Test
+sudo ./FT2232_Test
 ```
