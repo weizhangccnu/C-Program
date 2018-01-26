@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <ftd2xx.h>
+
+#define OneSector 64*1024
+#define SectorNum 2000 
 /*
  * @author: WeiZhang
  * @date: 2018-01-24
@@ -134,13 +137,12 @@ int main()
         printf("FT_Open succeed!\n");
         Get_Driver_Version(ftHandle);                       //Get driver version
         Get_Library_Version();                              //Get library version
-        //Purge_Buffer(ftHandle);                           //Purge Rx and Tx Buffer
-        //Reset_Device(ftHandle);                           //Reset device
+        Reset_Device(ftHandle);                             //Reset device
         Set_Device_Mode(ftHandle, 0x00);                    //Reset mode
         usleep(1000);
         if(Set_Device_Mode(ftHandle, 0x40) == FT_OK)        //Set device to sync 245 fifo mode
         {
-            ftStatus = FT_SetLatencyTimer(ftHandle, 16);    //Set latency time
+            ftStatus = FT_SetLatencyTimer(ftHandle, 16);     //Set latency time, default 16ms
             if(ftStatus == FT_OK)
             { 
                printf("right!\n");
@@ -155,13 +157,43 @@ int main()
             { 
                printf("right!\n");
             }
+            Purge_Buffer(ftHandle);                             //Purge Rx and Tx Buffer
+            DWORD RxBytes;
+            DWORD TxBytes;
+            DWORD BytesReceived;
+            DWORD BytesWritten;
+            char RxBuffer[OneSector];
+            char TxBuffer[512];
+            int i;
+            //LARGE_INTEGER IPreTime, IPostTime, IFrequency;
+            DWORD dwSum = 0;
+            for(i=0; i<512; i++)
+            {
+                TxBuffer[i] = i;
+                printf("%d\n", TxBuffer[i]);
+            }
+            for(i=0; i<512; i++)
+            {
+                //BytesReceived = i;
+                //TxBuffer[i] = i;
+                //ftStatus = FT_Read(ftHandle, RxBuffer, OneSector, &BytesReceived);
+                ftStatus = FT_Write(ftHandle, TxBuffer, sizeof(TxBuffer), &BytesWritten);
+                if(ftStatus == FT_OK)
+                {
+                    printf("Write the %d word\n", i);
+                }
+                else
+                {
+                    printf("Write failed!\n");
+                }
+            }
         }
     }
     else
     {
         printf("FT_Open failed!\n");
     }
-    FT_Close(ftHandle);                             //close handle
+    FT_Close(ftHandle);                                     //close handle
     //Test code 
     for(i=0;i<3;i++)
     {
