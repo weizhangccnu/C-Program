@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <time.h>
 #include <ftd2xx.h>
 
-#define OneSector 64*1024
-#define SectorNum 2000 
+#define TxSector 64*1024            //achieve max data transcever speed
+#define RxSector 64*1024
 /*
  * @author: WeiZhang
  * @date: 2018-01-24
@@ -11,189 +12,210 @@
  * under Linux operating system
  */
 /******************************************************************/
-// Get driver version
-void Get_Driver_Version(FT_HANDLE ftHandle)
+FILE *fpWrite;                      //define file pointer
+FT_HANDLE ftHandle;
+FT_STATUS ftStatus; 
+FT_DEVICE_LIST_INFO_NODE *devInfo;  
+DWORD numDevs;
+
+UCHAR Mask = 0xff;
+UCHAR Mode;
+UCHAR LatencyTimer = 2;
+DWORD EventDWord;
+DWORD RxBytes;
+DWORD TxBytes;
+DWORD BytesWritten;
+DWORD BytesReceived;
+BYTE TxBuffer[TxSector];
+BYTE RxBuffer[RxSector];
+
+/******************************************************************/
+//Open file for receive data
+void OpenFile(void)
 {
-    FT_STATUS ftStatus;
-    DWORD dwDriverVer;
-    ftStatus = FT_GetDriverVersion(ftHandle, &dwDriverVer);
-    if(ftStatus == FT_OK)
+    if(NULL != (fpWrite = fopen("./rxdata.dat", "w+")))
     {
-        printf("Driver version = 0x%x\n", dwDriverVer); 
+        printf("Open File Successfully!\n");    
     }
     else
     {
-        printf("error reading driver version\n");
+        printf("Cannot Open File!\n");    
+ 
     }
 }
 /******************************************************************/
-// Get library version
-void Get_Library_Version()
+// Write RxBuffer data to rxdata.dat file
+void WriteFile(void)
 {
-    FT_STATUS ftStatus;
-    DWORD dwLibraryVer;
-    ftStatus = FT_GetLibraryVersion(&dwLibraryVer);
-    if(ftStatus == FT_OK)
-    {
-        printf("Library version = 0x%x\n", dwLibraryVer);
-    }
-    else
-    {
-        printf("error reading library version\n");
-    }
+    fwrite(RxBuffer, sizeof(BYTE), sizeof(RxBuffer), fpWrite);
 }
 /******************************************************************/
-// Purge Rx and Tx Buffer
-void Purge_Buffer(FT_HANDLE ftHandle)
+int OpenUSB(void)
 {
-    FT_STATUS ftStatus;
-    ftStatus = FT_Purge(ftHandle, FT_PURGE_RX | FT_PURGE_TX);    //Purge both Rx and Tx buufers
-    if(ftStatus == FT_OK)
-    {
-        printf("FT_Purge succeed!\n");
-    }
-    else
-    {
-        printf("FT_Purge failed!\n");
-    }
-}
-/******************************************************************/
-// Reset FTDI device
-void Reset_Device(FT_HANDLE ftHandle)
-{
-    FT_STATUS ftStatus;
-    ftStatus = FT_ResetDevice(ftHandle);
-    if(ftStatus == FT_OK)
-    {
-        printf("FT_ResetDevice succeed!\n");
-    }
-    else
-    {
-        printf("FT_ResetDevice failed!\n");
-    }
-}
-/******************************************************************/
-// Set device to sync fifo mode
-FT_STATUS Set_Device_Mode(FT_HANDLE ftHandle, UCHAR Mode)
-{
-    FT_STATUS ftStatus;
-    UCHAR Mask = 0xff;
-    ftStatus = FT_SetBitMode(ftHandle, Mask, Mode);
-    if(ftStatus == FT_OK)
-    {
-        printf("Config mode succeed!\n");
-    }
-    else
-    {
-        printf("Config mode failed!\n");
-    }
-    return ftStatus;
-}
-/******************************************************************/
-//main function
-int main()
-{
-    int i = 0;
-    FT_HANDLE ftHandle;                 //define a ft2232 hanele
-    FT_STATUS ftStatus;
-    FT_HANDLE ftHandleTemp;
-    DWORD numDevs;
-    DWORD Flags;
-    DWORD ID;
-    DWORD Type;
-    DWORD LocId;
-    char SerialNumber[16];
-    char Description[64];
-    //
+    int i;
+#if 1
     ftStatus = FT_CreateDeviceInfoList(&numDevs);
     if(ftStatus == FT_OK)
-    { 
-       printf("Number of devices is %d\n",numDevs);
-    } 
-    else
-    { 
-       printf("FT_CreateDeviceInfoList failed!\n");
-    } 
+    {
+        printf("Number of devices is %d\n", numDevs);
+    }
     if(numDevs > 0)
     {
-        // get information for device 0
-        ftStatus = FT_GetDeviceInfoDetail(0, &Flags, &Type, &ID, &LocId, SerialNumber, Description, &ftHandleTemp);
+        //allocate storage for list base one numbDevs
+        devInfo = (FT_DEVICE_LIST_INFO_NODE *)malloc(sizeof(FT_DEVICE_LIST_INFO_NODE) * numDevs);
+        ftStatus = FT_GetDeviceInfoList(devInfo, &numDevs);
         if(ftStatus == FT_OK)
         {
-            printf("Dev 0:\n");
-            printf(" Flag=0x%x\n", Flags);
-            printf(" Type=0x%x\n", Type);
-            printf(" ID  =0x%x\n", ID);
-            printf(" LocId=0x%x\n", LocId);
-            printf(" SerialNumber=%s\n", SerialNumber);
-            printf(" Description=%s\n", Description);
-            printf(" ftHandle=0x%x\n", ftHandleTemp);
-        }
-    }
-    //Opne ftdi device 
-    ftStatus = FT_OpenEx(SerialNumber, FT_OPEN_BY_SERIAL_NUMBER , &ftHandle);     
-    if(ftStatus == FT_OK)
-    {
-        printf("FT_Open succeed!\n");
-        Get_Driver_Version(ftHandle);                       //Get driver version
-        Get_Library_Version();                              //Get library version
-        Reset_Device(ftHandle);                             //Reset device
-        Set_Device_Mode(ftHandle, 0x00);                    //Reset mode
-        usleep(1000);
-        if(Set_Device_Mode(ftHandle, 0x40) == FT_OK)        //Set device to sync 245 fifo mode
-        {
-            ftStatus = FT_SetLatencyTimer(ftHandle, 16);     //Set latency time, default 16ms
-            if(ftStatus == FT_OK)
-            { 
-               printf("right!\n");
-            }
-            ftStatus = FT_SetUSBParameters(ftHandle, 0x10000, 0x10000);     //set USB parameter
-            if(ftStatus == FT_OK)
-            { 
-               printf("right!\n");
-            }
-            ftStatus = FT_SetFlowControl(ftHandle, FT_FLOW_RTS_CTS, 0, 0);  //set flow control 
-            if(ftStatus == FT_OK)
-            { 
-               printf("right!\n");
-            }
-            Purge_Buffer(ftHandle);                             //Purge Rx and Tx Buffer
-            DWORD RxBytes;
-            DWORD TxBytes;
-            DWORD BytesReceived;
-            DWORD BytesWritten;
-            char RxBuffer[OneSector];
-            char TxBuffer[512];
-            int i;
-            //LARGE_INTEGER IPreTime, IPostTime, IFrequency;
-            DWORD dwSum = 0;
-            for(i=0; i<512; i++)
+            for(i=0; i<numDevs; i++)
             {
-                TxBuffer[i] = i;
-                printf("%d\n", TxBuffer[i]);
-            }
-            for(i=0; i<512; i++)
-            {
-                //BytesReceived = i;
-                //TxBuffer[i] = i;
-                //ftStatus = FT_Read(ftHandle, RxBuffer, OneSector, &BytesReceived);
-                ftStatus = FT_Write(ftHandle, TxBuffer, sizeof(TxBuffer), &BytesWritten);
-                if(ftStatus == FT_OK)
+                printf("Dev %d\n", i);
+                printf("  Flags = 0x%x\n", devInfo[i].Flags);
+                printf("  Type = 0x%x\n", devInfo[i].Type);
+                printf("  ID = 0x%x\n", devInfo[i].ID);
+                printf("  LocId = 0x%x\n", devInfo[i].LocId);
+                printf("  SerialNumber = %s\n", devInfo[i].SerialNumber);
+                printf("  Description = %s\n", devInfo[i].Description);
+                printf("  ftHandle = 0x%x\n", devInfo[i].ftHandle);
+                
+                if(devInfo[i].Flags & 0x02)
                 {
-                    printf("Write the %d word\n", i);
+                    //indicates the device  enumerated as high-speed mode
+                    printf("%s------------------high-speed mode\n", devInfo[i].Description);
                 }
                 else
                 {
-                    printf("Write failed!\n");
+                    printf("%s------------------low-speed mode\n", devInfo[i].Description);
                 }
             }
         }
     }
+#endif
+    ftStatus = FT_OpenEx("USB <-> Serial Converter A", FT_OPEN_BY_DESCRIPTION, &ftHandle);
+    if(ftStatus != FT_OK)
+    {
+        printf("Opening USB port failed with error %d !\n", ftStatus);
+        getchar();
+        return -1;
+    }
     else
     {
-        printf("FT_Open failed!\n");
+        Mode = 0x00;                //reset mode
+        ftStatus = FT_SetBitMode(ftHandle, Mask, Mode);
+        //usleep(10000);
+        Mode = 0x40;                //Sync FIFO mode
+        ftStatus = FT_SetBitMode(ftHandle, Mask, Mode);
+        if(ftStatus == FT_OK)
+        {
+            ftStatus = FT_SetLatencyTimer(ftHandle, LatencyTimer);
+            ftStatus = FT_SetUSBParameters(ftHandle, RxSector, TxSector);        //(64K, 512B)
+            //ftStatus = FT_SetUSBParameters(ftHandle, RxSector, 512);        //(64K, 512B)
+            ftStatus = FT_SetFlowControl(ftHandle, FT_FLOW_RTS_CTS, 0, 0);
+            ftStatus = FT_Purge(ftHandle, FT_PURGE_RX);
+        }
+        else
+        {
+            printf("FT_SetBitMode Failed!\n");
+            FT_Close(ftHandle);
+            getchar();
+            return -1;
+        }
+        printf("Open USB <-> Serial Converter A port succeeded!\n");
+        printf("Initialize USB successfully!\n");
     }
-    FT_Close(ftHandle);                                     //close handle
+    return 1;
+}   
+/******************************************************************/
+//FT2232 sent data to FPGA
+void USB_OUT(void)
+{
+    ftStatus = FT_GetStatus(ftHandle, &RxBytes, &TxBytes, &EventDWord);         //get FT status
+    if(ftStatus == FT_OK)
+    {
+        ftStatus = FT_Write(ftHandle, TxBuffer, sizeof(TxBuffer), &BytesWritten);   //write data to FIFO
+        if(ftStatus == FT_OK)
+        {
+            printf("Successfully Transmitted 512 Bytes!\n");            //success
+        }
+        else
+        {
+            printf("OUT Error!\n");                                     //failed
+        }
+    }
+}
+/******************************************************************/
+//FPGA sent data to FT2232
+void USB_IN(void)
+{
+    int i;
+    static long int j = 0;
+    ftStatus = FT_GetStatus(ftHandle, &RxBytes, &TxBytes, &EventDWord);
+    if((ftStatus == FT_OK) && (RxBytes >= RxSector))
+    {
+        //ftStatus = FT_Read(ftHandle, RxBuffer, RxBytes, &BytesReceived);
+        ftStatus = FT_Read(ftHandle, RxBuffer, sizeof(RxBuffer), &BytesReceived);
+        if(ftStatus == FT_OK)
+        {
+            //WriteFile();
+            //printf("%d\n", sizeof(RxBuffer));
+            //fwrite(RxBuffer, sizeof(BYTE), sizeof(RxBuffer), fpWrite);
+            for(i=0;i<RxSector;i++)                                     //print RxBuffer content
+            {
+                j++;
+                printf("j = %d: %d\n",j, RxBuffer[i]);
+                fprintf(fpWrite, "%d\n", RxBuffer[i]);
+            }
+        }
+        else
+        {
+            printf("Data Read Error!\n");
+        }
+    } 
+}
+/******************************************************************/
+//main function
+int main(int argc, char *argv[])
+{
+    int i;
+    OpenFile();
+    OpenUSB();
+    for(i=0; i<TxSector; i++)
+    {
+        TxBuffer[i] = i % 256;
+    }
+#if 0
+    for(i=0; i<TxSector; i++)
+    {
+        printf("%5d : %d\n",i, TxBuffer[i]);
+        fprintf(fpWrite, "%d\n", TxBuffer[i]);
+    }
+#endif
+    printf("Wait Command...\n");
+    printf("Start USB OUT: Enter A\nStart USB IN: Enter B\n");
+    char c = getchar();
+    //char c = 'A';
+    printf("%c\n",c);
+    while(1)
+    {
+        switch(c)
+        {
+            case 'A':
+                {
+                    //printf("A\n");
+                    USB_OUT();
+                    break;
+                }
+            case 'B':
+                {
+                    printf("USB IN!\n");
+                    USB_IN();
+                    break;
+                }
+            default:
+                    break;
+        }
+    }
+    FT_Close(ftHandle);
+    fclose(fpWrite);
     //Test code 
     for(i=0;i<3;i++)
     {
@@ -203,4 +225,3 @@ int main()
     printf("Running is over!\n");
     return 0;
 }
-
