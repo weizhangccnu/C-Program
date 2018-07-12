@@ -22,6 +22,7 @@ sudo ln -sf /usr/local/lib/libftd2xx.so.1.4.6 /usr/local/lib/libftd2xx.so
 sudo ./FT2232_Test
 ```
 ### 5. Remove module "ftdi_sio"
+  - In Linux, the VCP driver and D2XXX driver are incompatible with each other. When a FTDI device is plugged in, the VCP driver must be unloaded before a D2XXX application can be run. Use the remove module (rmmod) command to do this:
 ```
 sudo rmmod ftdi_sio
 ```
