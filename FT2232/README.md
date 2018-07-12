@@ -21,3 +21,7 @@ sudo ln -sf /usr/local/lib/libftd2xx.so.1.4.6 /usr/local/lib/libftd2xx.so
 ```
 sudo ./FT2232_Test
 ```
+### 5. Remove module "ftdi_sio"
+```
+sudo rmmod ftdi_sio
+```
